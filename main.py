@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+import httpx
 import msal
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
@@ -244,3 +246,224 @@ async def data_privacy_page(request: Request):
     if not _session_user(request):
         return _redirect_to_login(request)
     return _file_response("data-privacy.html")
+
+
+# ---------------------------------------------------------------------------
+# Shared helper: acquire an application-level token (client credentials flow)
+# ---------------------------------------------------------------------------
+
+def _acquire_app_token(scope: str) -> str:
+    """Acquire a service-to-service token using the app's client credentials."""
+    msal_app = _build_msal_app()
+    result = msal_app.acquire_token_for_client(scopes=[scope])
+    if "access_token" not in result:
+        err = result.get("error_description") or result.get("error") or "unknown error"
+        print(f"[token] Failed to acquire token for scope={scope}: {err}")
+        raise HTTPException(status_code=502, detail=f"Token acquisition failed: {err}")
+    return result["access_token"]
+
+
+# ---------------------------------------------------------------------------
+# Purview helper: page through search results and count classified entities
+# ---------------------------------------------------------------------------
+
+async def _count_purview_classified(
+    search_url: str,
+    headers: dict[str, str],
+    entity_types: list[str],
+) -> tuple[int, int]:
+    """Return (total, classified) counts for the given Purview entity types."""
+    total = 0
+    classified = 0
+    offset = 0
+    limit = 1000
+
+    if len(entity_types) == 1:
+        filter_body: dict[str, Any] = {"entityType": entity_types[0]}
+    else:
+        filter_body = {"or": [{"entityType": t} for t in entity_types]}
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        while True:
+            body = {"keywords": None, "limit": limit, "offset": offset, "filter": filter_body}
+            resp = await client.post(search_url, headers=headers, json=body)
+            if resp.status_code != 200:
+                print(f"[purview-coverage] search error: {resp.status_code} {resp.text[:300]}")
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Purview Data Map API error: HTTP {resp.status_code}",
+                )
+            data = resp.json()
+            entities: list[dict] = data.get("value", [])
+            if not entities:
+                break
+            for entity in entities:
+                total += 1
+                if entity.get("classification"):
+                    classified += 1
+            if len(entities) < limit or offset + limit >= 10000:
+                break
+            offset += limit
+
+    return total, classified
+
+
+# ---------------------------------------------------------------------------
+# API: Purview Classification Coverage
+# ---------------------------------------------------------------------------
+
+@app.get("/api/metrics/purview-classification-coverage")
+async def purview_classification_coverage(request: Request, range: str = "4w") -> JSONResponse:
+    _require_user(request)
+
+    account_name = os.getenv("PURVIEW_ACCOUNT_NAME", "").strip()
+    if not account_name:
+        raise HTTPException(status_code=500, detail="PURVIEW_ACCOUNT_NAME is not configured.")
+
+    token = _acquire_app_token("https://purview.azure.net/.default")
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    search_url = (
+        f"https://{account_name}.purview.azure.com"
+        "/datamap/api/search/query?api-version=2023-09-01-preview"
+    )
+
+    # Try column-level first; fall back to table/view level if no columns registered.
+    for entity_types, asset_level in [
+        (["azure_sql_column"], "column"),
+        (["azure_sql_table", "azure_sql_view"], "table/view"),
+    ]:
+        total, classified = await _count_purview_classified(search_url, headers, entity_types)
+        if total > 0:
+            coverage_pct = round(classified / total * 100)
+            print(
+                f"[purview-coverage] asset_level={asset_level} total={total} "
+                f"classified={classified} pct={coverage_pct}%"
+            )
+            return JSONResponse(
+                {
+                    "coverage_pct": coverage_pct,
+                    "classified_count": classified,
+                    "total_count": total,
+                    "asset_level": asset_level,
+                }
+            )
+
+    print("[purview-coverage] No data assets found in Purview Data Map.")
+    return JSONResponse(
+        {
+            "coverage_pct": 0,
+            "classified_count": 0,
+            "total_count": 0,
+            "asset_level": "none",
+            "note": "No data assets found in Purview Data Map.",
+        }
+    )
+
+
+# ---------------------------------------------------------------------------
+# API: Sensitive Data Exposure Alerts  (Office 365 Management Activity API)
+# ---------------------------------------------------------------------------
+
+_DLP_WORKLOADS = {"sharepoint", "onedrive", "exchange"}
+
+
+@app.get("/api/metrics/sensitive-data-exposure-alerts")
+async def sensitive_data_exposure_alerts(request: Request, range: str = "4w") -> JSONResponse:
+    _require_user(request)
+
+    tenant_id = AUTH_CONFIG.tenant_id
+    if not tenant_id:
+        raise HTTPException(status_code=500, detail="AZURE_TENANT_ID is not configured.")
+
+    token = _acquire_app_token("https://manage.office.com/.default")
+    headers = {"Authorization": f"Bearer {token}"}
+    feed_base = f"https://manage.office.com/api/v1.0/{tenant_id}/activity/feed"
+
+    week_count = 12 if range == "12w" else 4
+    # O365 Management API retains content for max 7 days.
+    available_days = 7
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    # Collect unique DLP alerts across the available 7-day window.
+    # Each request window must be ≤ 24 h; iterate day by day.
+    seen: dict[str, datetime] = {}  # alertId -> event CreationTime
+
+    async with httpx.AsyncClient(timeout=60) as client:
+        for day in range(available_days):
+            end_dt = now_utc - timedelta(days=day)
+            start_dt = end_dt - timedelta(hours=24)
+            start_str = start_dt.strftime("%Y-%m-%dT%H:%M:%S")
+            end_str = end_dt.strftime("%Y-%m-%dT%H:%M:%S")
+
+            content_url = (
+                f"{feed_base}/subscriptions/content"
+                f"?contentType=DLP.All&startTime={start_str}&endTime={end_str}"
+            )
+
+            # Follow NextPageUri pagination for the content list.
+            next_page: str | None = content_url
+            while next_page:
+                resp = await client.get(next_page, headers=headers)
+                if resp.status_code != 200:
+                    print(
+                        f"[dlp-alerts] content list HTTP {resp.status_code} "
+                        f"day=-{day}: {resp.text[:200]}"
+                    )
+                    break
+                blobs: list[dict] = resp.json() or []
+                next_page = resp.headers.get("NextPageUri")
+
+                for blob in blobs:
+                    content_uri = blob.get("contentUri")
+                    if not content_uri:
+                        continue
+                    blob_resp = await client.get(content_uri, headers=headers)
+                    if blob_resp.status_code != 200:
+                        print(f"[dlp-alerts] blob fetch HTTP {blob_resp.status_code}: {content_uri}")
+                        continue
+                    events: list[dict] = blob_resp.json() or []
+                    for ev in events:
+                        alert_id = ev.get("AlertId") or ev.get("alertId")
+                        if not alert_id:
+                            continue
+                        status = (ev.get("AlertStatus") or ev.get("alertStatus") or "").lower()
+                        if status == "dismissed":
+                            continue
+                        workload = (ev.get("Workload") or ev.get("workload") or "").lower()
+                        if workload not in _DLP_WORKLOADS:
+                            continue
+                        if alert_id in seen:
+                            continue
+                        raw_time = ev.get("CreationTime") or ev.get("creationTime") or ""
+                        try:
+                            event_time = datetime.fromisoformat(raw_time.replace("Z", "+00:00"))
+                            event_time = event_time.replace(tzinfo=None)
+                        except (ValueError, AttributeError):
+                            event_time = now_utc
+                        seen[alert_id] = event_time
+
+    # Bucket alerts into calendar weeks (Mon-Sun), newest = W{week_count}.
+    today = now_utc.date()
+    current_week_monday = today - timedelta(days=today.weekday())
+    week_counts = [0] * week_count
+
+    for event_time in seen.values():
+        event_date = event_time.date()
+        event_week_monday = event_date - timedelta(days=event_date.weekday())
+        weeks_ago = (current_week_monday - event_week_monday).days // 7
+        if 0 <= weeks_ago < week_count:
+            bucket = week_count - 1 - weeks_ago
+            week_counts[bucket] += 1
+
+    total = len(seen)
+    weeks_payload = [{"label": f"W{i + 1}", "count": week_counts[i]} for i in range(week_count)]
+
+    print(f"[dlp-alerts] range={range} total_unique_alerts={total}")
+    return JSONResponse(
+        {
+            "total": total,
+            "weeks": weeks_payload,
+            "data_window_days": available_days,
+            "note": "Office 365 Management API retains content for up to 7 days.",
+        }
+    )
