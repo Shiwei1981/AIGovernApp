@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Govern Dashboard - Data and Privacy Domain Mockup V1</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background: #f4f7fb; color: #1f2937; }
+    .topbar { background: linear-gradient(135deg, #0f172a, #1d4ed8); color: #fff; }
+    .page-shell { padding-left: 56px; padding-right: 56px; }
+    .page-card, .section-card, .metric-card { border: 0; border-radius: 18px; box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08); background: #fff; }
+    .page-card, .section-card { padding: 24px; }
+    .metric-card { padding: 14px; height: 100%; display: flex; flex-direction: column; }
+    .section-card { margin-top: 40px; }
+    .page-title { font-size: 1.65rem; font-weight: 800; color: #0f172a; margin-bottom: 6px; }
+    .domain-title { font-size: 1.06rem; font-weight: 800; line-height: 1.35; color: #0f172a; padding-right: 10px; }
+    .section-title { font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+    .section-desc { font-size: 0.84rem; color: #64748b; margin-bottom: 0; }
+    .subtle { font-size: 0.78rem; color: #64748b; }
+    .crumb { font-size: 0.78rem; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.04em; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+    .status-red { background: #dc2626; }
+    .status-yellow { background: #d97706; }
+    .status-green { background: #16a34a; }
+    .pill { border-radius: 999px; padding: 0.25rem 0.6rem; font-size: 0.78rem; white-space: nowrap; flex-shrink: 0; }
+    .pill-red { background: #fee2e2; color: #991b1b; }
+    .pill-yellow { background: #fef3c7; color: #92400e; }
+    .pill-green { background: #dcfce7; color: #166534; }
+    .metric-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+    .section-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin-top: 16px; }
+    .section-grid-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .metric-title { font-size: 0.88rem; font-weight: 700; margin-bottom: 6px; }
+    .metric-desc { font-size: 0.76rem; line-height: 1.35; color: #6b7280; min-height: 40px; }
+    .metric-number { font-size: 1.75rem; font-weight: 700; line-height: 1; }
+    .metric-caption { font-size: 0.78rem; color: #6b7280; }
+    .metric-subcaption { font-size: 0.72rem; color: #64748b; margin-top: 6px; }
+    .number-hero { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 10px; min-height: 108px; margin-top: 10px; }
+    .number-hero .metric-number { font-size: 3rem; }
+    .number-chip { display: inline-flex; align-items: center; gap: 8px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 999px; padding: 6px 10px; font-size: 0.74rem; font-weight: 600; }
+    .donut-wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+    .donut-wrap-top { align-items: flex-start; }
+    .donut { width: 82px; height: 82px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--accent) calc(var(--value) * 1%), #e5e7eb 0); flex: 0 0 auto; }
+    .donut-hole { width: 60px; height: 60px; border-radius: 50%; background: #fff; display: grid; place-items: center; font-size: 0.92rem; font-weight: 700; }
+    .legend-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; font-size: 0.72rem; color: #475569; }
+    .legend-label { display: flex; align-items: center; gap: 6px; min-width: 0; line-height: 1.25; }
+    .legend-value { flex: 0 0 auto; font-weight: 700; }
+    .legend-swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+    .swatch-blue { background: #2563eb; }
+    .swatch-cyan { background: #06b6d4; }
+    .swatch-violet { background: #8b5cf6; }
+    .swatch-slate { background: #94a3b8; }
+    .swatch-red { background: #dc2626; }
+    .swatch-amber { background: #d97706; }
+    .stacked-track { display: flex; width: 100%; height: 12px; border-radius: 999px; overflow: hidden; background: #e5e7eb; margin-top: 14px; }
+    .stacked-seg { height: 100%; }
+    .stacked-legend { margin-top: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
+    .weekly-bars { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; height: 88px; margin-top: 14px; }
+    .week-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+    .week-stack { width: 100%; max-width: 24px; height: 62px; display: flex; flex-direction: column; justify-content: flex-end; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
+    .week-seg { width: 100%; }
+    .week-label { font-size: 0.68rem; color: #64748b; }
+    .spark-number { margin-top: 10px; }
+    .sparkline { width: 100%; height: 58px; margin-top: 12px; }
+    .sparkline polyline { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .sparkline .grid { stroke: #e5e7eb; stroke-width: 1; fill: none; }
+    .sparkline circle { fill: #fff; stroke-width: 2; }
+    .bullet-track { margin-top: 18px; height: 12px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
+    .bullet-fill { height: 100%; border-radius: 999px; }
+    .fill-red { background: linear-gradient(90deg, #f87171, #dc2626); }
+    .fill-yellow { background: linear-gradient(90deg, #fbbf24, #d97706); }
+    .fill-green { background: linear-gradient(90deg, #4ade80, #16a34a); }
+    .fill-blue { background: #2563eb; }
+    .fill-violet { background: #8b5cf6; }
+    .stroke-red { stroke: #dc2626; }
+    .stroke-yellow { stroke: #d97706; }
+    .stroke-green { stroke: #16a34a; }
+    .stroke-blue { stroke: #2563eb; }
+    .dot-red { stroke: #dc2626; }
+    .dot-yellow { stroke: #d97706; }
+    .dot-green { stroke: #16a34a; }
+    .dot-blue { stroke: #2563eb; }
+    .accent-red { --accent: #dc2626; }
+    .accent-yellow { --accent: #d97706; }
+    .accent-green { --accent: #16a34a; }
+    .accent-blue { --accent: #2563eb; }
+    .split-stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+    .stat-block { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px 12px; }
+    .stat-label { font-size: 0.68rem; line-height: 1.35; color: #64748b; margin-bottom: 4px; }
+    .stat-value { font-size: 1.4rem; font-weight: 700; line-height: 1; color: #0f172a; }
+    .stat-sub { margin-top: 4px; font-size: 0.68rem; color: #475569; }
+    .metric-details { margin-top: 14px; }
+    .metric-details summary { cursor: pointer; color: #1d4ed8; font-size: 0.74rem; font-weight: 600; }
+    .metric-details summary::-webkit-details-marker { color: #1d4ed8; }
+    .metric-table { margin-top: 10px; font-size: 0.72rem; }
+    .metric-table th { white-space: nowrap; color: #475569; }
+    .metric-source { margin-top: auto; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 0.7rem; line-height: 1.35; color: #64748b; }
+    .summary-kpis { margin-top: 18px; }
+    @media (max-width: 1400px) {
+      .section-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 991.98px) {
+      .page-shell { padding-left: 24px; padding-right: 24px; }
+      .metric-grid, .section-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar py-4 mb-4">
+    <div class="container-fluid page-shell">
+      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+        <div>
+          <div class="crumb">AI Control Tower &gt; Data and Privacy</div>
+          <h1 class="h3 mb-1">Data and Privacy</h1>
+          <div class="small opacity-75">Domain page / weekly view / mixed real and planning metrics</div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <span class="badge text-bg-light">Time: Last 4 Weeks</span>
+          <span class="badge text-bg-light">Last Updated: 2026-04-30 00:45</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container-fluid page-shell pb-5">
+    <section class="page-card">
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+        <div>
+          <div class="domain-title"><span class="status-dot status-red"></span>Data and Privacy</div>
+          <p class="subtle mb-0">This domain page covers all currently listed data, privacy, exposure, retention, and sharing metrics for AI systems.</p>
+        </div>
+        <span class="pill pill-red">High Risk</span>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <div>
+        <div class="section-title">3.1 Azure Data Resource Governance and AI Tagging</div>
+        <p class="section-desc">Compare Purview-controlled Azure databases and cloud storage resources against AI-tagged resources, and surface likely AI-use resources still missing the AI tag.</p>
+      </div>
+      <div class="section-grid section-grid-two">
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">Purview-Controlled vs AI-Tagged Azure Resources</div>
+            <div class="metric-desc">Compare Azure databases and cloud storage resources already under Purview control against resources carrying the <code>AI</code> tag.</div>
+          </div>
+          <div class="split-stat-grid">
+            <div class="stat-block">
+              <div class="stat-label">Azure databases / Purview-controlled</div>
+              <div class="stat-value">24</div>
+              <div class="stat-sub">resources</div>
+            </div>
+            <div class="stat-block">
+              <div class="stat-label">Azure databases / AI-tagged</div>
+              <div class="stat-value">19</div>
+              <div class="stat-sub">resources</div>
+            </div>
+            <div class="stat-block">
+              <div class="stat-label">Azure cloud storage / Purview-controlled</div>
+              <div class="stat-value">31</div>
+              <div class="stat-sub">resources</div>
+            </div>
+            <div class="stat-block">
+              <div class="stat-label">Azure cloud storage / AI-tagged</div>
+              <div class="stat-value">28</div>
+              <div class="stat-sub">resources</div>
+            </div>
+          </div>
+          <details class="metric-details">
+            <summary>Expand comparison list</summary>
+            <div class="table-responsive">
+              <table class="table table-sm metric-table mb-0">
+                <thead>
+                  <tr>
+                    <th>Resource Name</th>
+                    <th>Resource Group</th>
+                    <th>AI Tag</th>
+                    <th>Purview Controlled</th>
+                    <th>Owner</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>sql-ai-fraud-prod</td><td>rg-ai-risk-prod</td><td>Yes</td><td>Yes</td><td>FinRiskOps</td></tr>
+                  <tr><td>stcustvoicearchive01</td><td>rg-ai-copilot-prod</td><td>Yes</td><td>No</td><td>CustInsights</td></tr>
+                  <tr><td>sql-salesassist-dev</td><td>rg-sales-ai-dev</td><td>No</td><td>Yes</td><td>SalesApps</td></tr>
+                  <tr><td>stgenaiworkspace01</td><td>rg-genai-lab</td><td>Yes</td><td>Yes</td><td>AICoE</td></tr>
+                  <tr><td>sql-claims-rag-prod</td><td>rg-claims-ai-prod</td><td>No</td><td>Yes</td><td>ClaimsPlatform</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+          <div class="metric-source">Data source: Microsoft Purview governed asset list / Data Map, Azure Resource Graph, Azure tags (<code>AI</code>, <code>Owner</code>).</div>
+        </div>
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">Potential AI-Use Azure Resources Without AI Tag</div>
+            <div class="metric-desc">Within resource groups that contain AI-related resources or any <code>AI</code>-tagged resource, count Azure databases and cloud storage resources that still do not carry the <code>AI</code> tag.</div>
+          </div>
+          <div class="split-stat-grid">
+            <div class="stat-block">
+              <div class="stat-label">Azure databases / missing AI tag</div>
+              <div class="stat-value">7</div>
+              <div class="stat-sub">candidate resources</div>
+            </div>
+            <div class="stat-block">
+              <div class="stat-label">Azure cloud storage / missing AI tag</div>
+              <div class="stat-value">11</div>
+              <div class="stat-sub">candidate resources</div>
+            </div>
+          </div>
+          <details class="metric-details">
+            <summary>Expand candidate resource list</summary>
+            <div class="table-responsive">
+              <table class="table table-sm metric-table mb-0">
+                <thead>
+                  <tr>
+                    <th>Resource Name</th>
+                    <th>Resource Group</th>
+                    <th>Resource Type</th>
+                    <th>Owner</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>sql-sales-shadow-01</td><td>rg-sales-ai-dev</td><td>Azure Database</td><td>SalesApps</td></tr>
+                  <tr><td>stcopilotdocs02</td><td>rg-ai-copilot-prod</td><td>Azure Cloud Storage</td><td>CustInsights</td></tr>
+                  <tr><td>stclaimsarchive02</td><td>rg-claims-ai-prod</td><td>Azure Cloud Storage</td><td>ClaimsPlatform</td></tr>
+                  <tr><td>sql-supportbot-prep</td><td>rg-support-ai-test</td><td>Azure Database</td><td>ServiceDeskAI</td></tr>
+                  <tr><td>stgenaifeaturestore</td><td>rg-genai-lab</td><td>Azure Cloud Storage</td><td>AICoE</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+          <div class="metric-source">Data source: Azure Resource Graph, Azure resource group membership, Azure tags (<code>AI</code>, <code>Owner</code>).</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <div>
+        <div class="section-title">3.2 Sensitive Data Use</div>
+        <p class="section-desc">Track classified-column coverage, sensitive data category mix, classification access demand, and mask execution activity.</p>
+      </div>
+      <div class="section-grid section-grid-two">
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">Purview Classification Coverage</div>
+            <div class="metric-desc">Among structured databases and files parsed by Purview, the share of columns that have already been classified.</div>
+          </div>
+          <div class="donut-wrap donut-wrap-top">
+            <div>
+              <div class="metric-number">76%</div>
+              <div class="metric-caption">classified columns vs total columns</div>
+            </div>
+            <div class="donut accent-yellow" style="--value:76">
+              <div class="donut-hole">76%</div>
+            </div>
+          </div>
+          <div class="metric-source">Data source: Purview Data Map, Purview scan results, Purview classification results.</div>
+        </div>
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">Sensitive Data Category Mix</div>
+            <div class="metric-desc">Distribution of classified columns by sensitive-data classification category.</div>
+          </div>
+          <div class="stacked-track" aria-hidden="true">
+            <div class="stacked-seg swatch-blue" style="width:31%"></div>
+            <div class="stacked-seg swatch-cyan" style="width:23%"></div>
+            <div class="stacked-seg swatch-violet" style="width:19%"></div>
+            <div class="stacked-seg swatch-red" style="width:15%"></div>
+            <div class="stacked-seg swatch-slate" style="width:12%"></div>
+          </div>
+          <div class="stacked-legend">
+            <div class="legend-item">
+              <span class="legend-label"><span class="legend-swatch swatch-blue"></span>PII</span>
+              <span class="legend-value">31%</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-label"><span class="legend-swatch swatch-cyan"></span>Confidential</span>
+              <span class="legend-value">23%</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-label"><span class="legend-swatch swatch-violet"></span>Financial</span>
+              <span class="legend-value">19%</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-label"><span class="legend-swatch swatch-red"></span>HR</span>
+              <span class="legend-value">15%</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-label"><span class="legend-swatch swatch-slate"></span>Source Code</span>
+              <span class="legend-value">12%</span>
+            </div>
+          </div>
+          <div class="metric-source">Data source: Purview classification results, Microsoft Purview Information Protection.</div>
+        </div>
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">Top Requested Classifications</div>
+            <div class="metric-desc">Top 3 classifications with the highest visibility-request volume during the selected period.</div>
+          </div>
+          <div class="split-stat-grid">
+            <div class="stat-block">
+              <div class="stat-label">PII</div>
+              <div class="stat-value">1,248</div>
+              <div class="stat-sub">requests</div>
+            </div>
+            <div class="stat-block">
+              <div class="stat-label">Confidential</div>
+              <div class="stat-value">964</div>
+              <div class="stat-sub">requests</div>
+            </div>
+            <div class="stat-block">
+              <div class="stat-label">Financial</div>
+              <div class="stat-value">716</div>
+              <div class="stat-sub">requests</div>
+            </div>
+          </div>
+          <details class="metric-details">
+            <summary>Expand classification access list</summary>
+            <div class="table-responsive">
+              <table class="table table-sm metric-table mb-0">
+                <thead>
+                  <tr>
+                    <th>Classification</th>
+                    <th>Access Volume</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>PII</td><td>1,248</td></tr>
+                  <tr><td>Confidential</td><td>964</td></tr>
+                  <tr><td>Financial</td><td>716</td></tr>
+                  <tr><td>HR</td><td>402</td></tr>
+                  <tr><td>Source Code</td><td>287</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+          <div class="metric-source">Data source: custom classified column visibility request database.</div>
+        </div>
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">Mask Execution Activity</div>
+            <div class="metric-desc">Mask executions recorded during the selected period, with a resource-level breakdown available on demand.</div>
+          </div>
+          <div class="spark-number">
+            <div class="metric-number">4,826</div>
+            <div class="metric-caption">mask executions in selected period</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 120 58" aria-hidden="true">
+            <path class="grid" d="M0 50 H120 M0 29 H120 M0 8 H120"></path>
+            <polyline class="stroke-green" points="5,34 30,30 55,25 80,20 115,16"></polyline>
+            <circle class="dot-green" cx="115" cy="16" r="4"></circle>
+          </svg>
+          <details class="metric-details">
+            <summary>Expand mask execution list</summary>
+            <div class="table-responsive">
+              <table class="table table-sm metric-table mb-0">
+                <thead>
+                  <tr>
+                    <th>Resource Name</th>
+                    <th>Mask Count</th>
+                    <th>Mask Method</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>sql-ai-fraud-prod</td><td>1,126</td><td>Dynamic Data Masking</td></tr>
+                  <tr><td>stcustvoicearchive01</td><td>894</td><td>Tokenization</td></tr>
+                  <tr><td>sql-claims-rag-prod</td><td>731</td><td>Redaction</td></tr>
+                  <tr><td>stgenaiworkspace01</td><td>612</td><td>Hash Masking</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+          <div class="metric-source">Data source: custom mask request database.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <div>
+        <div class="section-title">3.3 M365 Sensitive Data Protection and Alerts</div>
+        <p class="section-desc">Focus on the most useful M365 metrics for sensitive data protection coverage and Purview-driven alert visibility.</p>
+      </div>
+      <div class="section-grid section-grid-two">
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">Protected Sensitive M365 Items</div>
+            <div class="metric-desc">M365 items where Purview has detected sensitive information types and a sensitivity label is already present.</div>
+          </div>
+          <div class="number-hero">
+            <div class="metric-number">18,426</div>
+            <div class="metric-caption">protected sensitive M365 items</div>
+          </div>
+          <details class="metric-details">
+            <summary>Expand protected item location list</summary>
+            <div class="table-responsive">
+              <table class="table table-sm metric-table mb-0">
+                <thead>
+                  <tr>
+                    <th>Location</th>
+                    <th>Protected Items</th>
+                    <th>Primary Label</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>SharePoint Online</td><td>8,214</td><td>Confidential</td></tr>
+                  <tr><td>Exchange Online</td><td>5,982</td><td>General Sensitive</td></tr>
+                  <tr><td>OneDrive</td><td>4,230</td><td>PII</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+          <div class="metric-source">Data source: Microsoft Purview Content Explorer, Microsoft Purview Information Protection, SharePoint Online / OneDrive / Exchange Online metadata.</div>
+        </div>
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">M365 / Purview Exposure Alerts</div>
+            <div class="metric-desc">Unique sensitive-data exposure alert cases detected from M365 and Purview controls.</div>
+          </div>
+          <div class="spark-number">
+            <div class="metric-number">9</div>
+            <div class="metric-caption">alert cases in last 4 weeks</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 120 58" aria-hidden="true">
+            <path class="grid" d="M0 50 H120 M0 29 H120 M0 8 H120"></path>
+            <polyline class="stroke-blue" points="5,34 30,28 55,24 80,27 115,18"></polyline>
+            <circle class="dot-blue" cx="115" cy="18" r="4"></circle>
+          </svg>
+          <details class="metric-details">
+            <summary>Expand alert detail list</summary>
+            <div class="table-responsive">
+              <table class="table table-sm metric-table mb-0">
+                <thead>
+                  <tr>
+                    <th>Location</th>
+                    <th>Policy / Rule</th>
+                    <th>Alert Cases</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Exchange Online</td><td>PCI outbound DLP</td><td>4</td></tr>
+                  <tr><td>SharePoint Online</td><td>PII external sharing</td><td>3</td></tr>
+                  <tr><td>OneDrive</td><td>Confidential upload alert</td><td>2</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+          <div class="metric-source">Data source: Microsoft Purview DLP / Alert Center, Purview Audit.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <div>
+        <div class="section-title">3.4 Data Retention and Deletion</div>
+        <p class="section-desc">Focus on directly measurable retention risk: resources retained too long and resources that still have no effective retention policy.</p>
+      </div>
+      <div class="section-grid section-grid-two">
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">Over-Retention Data Resources</div>
+            <div class="metric-desc">Data resources still retained beyond their approved retention period.</div>
+          </div>
+          <div class="spark-number">
+            <div class="metric-number">21</div>
+            <div class="metric-caption">resources over retention target</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 120 58" aria-hidden="true">
+            <path class="grid" d="M0 50 H120 M0 29 H120 M0 8 H120"></path>
+            <polyline class="stroke-red" points="5,18 30,20 55,24 80,30 115,38"></polyline>
+            <circle class="dot-red" cx="115" cy="38" r="4"></circle>
+          </svg>
+          <details class="metric-details">
+            <summary>Expand over-retention list</summary>
+            <div class="table-responsive">
+              <table class="table table-sm metric-table mb-0">
+                <thead>
+                  <tr>
+                    <th>Resource Name</th>
+                    <th>Resource Type</th>
+                    <th>Days Over Retention</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>stcustvoicearchive01</td><td>Azure Storage</td><td>42</td></tr>
+                  <tr><td>sql-claims-rag-prod</td><td>Azure SQL</td><td>36</td></tr>
+                  <tr><td>stgenaiworkspace01</td><td>Azure Storage</td><td>29</td></tr>
+                  <tr><td>sql-salesassist-dev</td><td>Azure SQL</td><td>18</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+          <div class="metric-source">Data source: Microsoft Purview Data Lifecycle Management, Azure Storage lifecycle policies, Purview retention state.</div>
+        </div>
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">Data Resources Without Effective Retention Policy</div>
+            <div class="metric-desc">Resources currently not matched to an effective retention policy or lifecycle policy.</div>
+          </div>
+          <div class="number-hero">
+            <div class="metric-number">14</div>
+            <div class="metric-caption">resources without effective policy</div>
+          </div>
+          <details class="metric-details">
+            <summary>Expand uncovered resource list</summary>
+            <div class="table-responsive">
+              <table class="table table-sm metric-table mb-0">
+                <thead>
+                  <tr>
+                    <th>Resource Name</th>
+                    <th>Resource Type</th>
+                    <th>Current Policy State</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>stcopilotdocs02</td><td>Azure Storage</td><td>No lifecycle policy</td></tr>
+                  <tr><td>sql-supportbot-prep</td><td>Azure SQL</td><td>Not mapped to Purview retention</td></tr>
+                  <tr><td>stclaimsarchive02</td><td>Azure Storage</td><td>Policy non-compliant</td></tr>
+                  <tr><td>sql-ai-fraud-prod</td><td>Azure SQL</td><td>No effective retention assignment</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+          <div class="metric-source">Data source: Azure Policy, Azure Storage lifecycle policies, Microsoft Purview Data Lifecycle Management.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" hidden>
+      <div>
+        <div class="section-title">3.5 Cross-Border Data Flow and Sharing</div>
+        <p class="section-desc">Track data movement across borders and business boundaries, especially where approvals are missing.</p>
+      </div>
+      <div class="section-grid">
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">Cross-Border Transfers</div>
+            <div class="metric-desc">Detected transfers of AI-related data across geographic or regulatory boundaries</div>
+          </div>
+          <div class="spark-number">
+            <div class="metric-number">16</div>
+            <div class="metric-caption">transfer events</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 120 58" aria-hidden="true">
+            <path class="grid" d="M0 50 H120 M0 29 H120 M0 8 H120"></path>
+            <polyline class="stroke-yellow" points="5,34 30,28 55,24 80,21 115,18"></polyline>
+            <circle class="dot-yellow" cx="115" cy="18" r="4"></circle>
+          </svg>
+          <div class="metric-source">Data source: Microsoft Purview Audit, Microsoft Entra cross-tenant / sign-in logs, Azure Data Factory access logs.</div>
+        </div>
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">Cross-Department Shared Datasets</div>
+            <div class="metric-desc">Datasets shared across departments for AI use cases</div>
+          </div>
+          <div class="spark-number">
+            <div class="metric-number">43</div>
+            <div class="metric-caption">shared datasets</div>
+          </div>
+          <div class="stacked-track" aria-hidden="true">
+            <div class="stacked-seg swatch-blue" style="width:40%"></div>
+            <div class="stacked-seg swatch-cyan" style="width:32%"></div>
+            <div class="stacked-seg swatch-slate" style="width:28%"></div>
+          </div>
+          <div class="stacked-legend">
+            <div class="legend-item">
+              <span class="legend-label"><span class="legend-swatch swatch-blue"></span>Within Region</span>
+              <span class="legend-value">17</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-label"><span class="legend-swatch swatch-cyan"></span>Cross Region</span>
+              <span class="legend-value">14</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-label"><span class="legend-swatch swatch-slate"></span>External Partner</span>
+              <span class="legend-value">12</span>
+            </div>
+          </div>
+          <div class="metric-source">Data source: Microsoft Purview Audit, Defender for Cloud Apps, Microsoft Entra cross-tenant logs.</div>
+        </div>
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">Unapproved Sharing</div>
+            <div class="metric-desc">Detected sharing activity that did not pass required approval routes</div>
+          </div>
+          <div class="spark-number">
+            <div class="metric-number">7</div>
+            <div class="metric-caption">unapproved sharing items</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 120 58" aria-hidden="true">
+            <path class="grid" d="M0 50 H120 M0 29 H120 M0 8 H120"></path>
+            <polyline class="stroke-red" points="5,30 30,28 55,24 80,20 115,14"></polyline>
+            <circle class="dot-red" cx="115" cy="14" r="4"></circle>
+          </svg>
+          <div class="metric-source">Data source: Microsoft Purview Audit, Defender for Cloud Apps, Power Automate approval records.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" hidden>
+      <div>
+        <div class="section-title">3.6 PII Use</div>
+        <p class="section-desc">Separate dedicated PII metrics from the broader sensitive-data population to support privacy-specific controls.</p>
+      </div>
+      <div class="section-grid">
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">PII-Handling AI Systems</div>
+            <div class="metric-desc">AI systems that process identifiable personal information</div>
+          </div>
+          <div class="number-hero">
+            <div class="metric-number">18</div>
+            <div class="metric-caption">systems with PII processing</div>
+            <div class="number-chip">privacy-scoped population</div>
+          </div>
+          <div class="metric-source">Data source: Microsoft Purview Information Protection, Purview Data Map classification.</div>
+        </div>
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">PII Use Cases</div>
+            <div class="metric-desc">Documented scenarios where AI systems use or transform PII</div>
+          </div>
+          <div class="spark-number">
+            <div class="metric-number">46</div>
+            <div class="metric-caption">documented use cases</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 120 58" aria-hidden="true">
+            <path class="grid" d="M0 50 H120 M0 29 H120 M0 8 H120"></path>
+            <polyline class="stroke-blue" points="5,36 30,34 55,30 80,24 115,18"></polyline>
+            <circle class="dot-blue" cx="115" cy="18" r="4"></circle>
+          </svg>
+          <div class="metric-source">Data source: privacy use-case registry, Dataverse / SharePoint records.</div>
+        </div>
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">PII Minimization Coverage</div>
+            <div class="metric-desc">PII-handling systems with masking, truncation, or minimization controls</div>
+          </div>
+          <div class="donut-wrap">
+            <div>
+              <div class="metric-number">58%</div>
+              <div class="metric-caption">PII systems covered</div>
+            </div>
+            <div class="donut accent-yellow" style="--value:58">
+              <div class="donut-hole">58%</div>
+            </div>
+          </div>
+          <div class="metric-source">Data source: Purview DLP, application data-handling metadata, Microsoft Purview Information Protection.</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>
