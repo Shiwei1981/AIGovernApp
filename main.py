@@ -91,6 +91,11 @@ if not SESSION_SECRET:
 APP_ENV = os.getenv("APP_ENV", "test").strip().lower()
 IS_PRODUCTION = APP_ENV in {"prod", "production"}
 
+# Server-side store for MSAL auth code flows.
+# The full flow dict (code_verifier, auth_uri, etc.) is too large for a cookie;
+# only the short state key is kept in the session cookie.
+_auth_flow_store: dict[str, dict] = {}
+
 app = FastAPI(title="AI Govern Dashboard")
 app.add_middleware(
     SessionMiddleware,
@@ -190,7 +195,10 @@ async def login(request: Request, prompt: str = "select_account", next: str = "/
         redirect_uri=AUTH_CONFIG.callback_url,
         prompt=prompt,
     )
-    request.session["auth_flow"] = flow
+    # Store the full flow server-side; put only the short state key in the cookie.
+    state_key: str = flow["state"]
+    _auth_flow_store[state_key] = flow
+    request.session["auth_flow_state"] = state_key
     return RedirectResponse(url=flow["auth_uri"], status_code=303)
 
 
@@ -200,8 +208,14 @@ async def auth_callback(request: Request) -> RedirectResponse:
         request.session["user"] = _mock_user()
         return RedirectResponse(url=request.session.pop("post_login_redirect", "/"), status_code=303)
 
-    flow = request.session.get("auth_flow")
+    # Retrieve the MSAL flow from the server-side store.
+    state_key = request.session.get("auth_flow_state") or request.query_params.get("state")
+    flow = _auth_flow_store.pop(state_key, None) if state_key else None
     if not isinstance(flow, dict):
+        print(
+            f"[auth-callback] auth_flow missing; state_key={state_key!r} "
+            f"store_keys={list(_auth_flow_store.keys())}"
+        )
         raise HTTPException(status_code=400, detail="Authentication flow state is missing.")
 
     try:
@@ -224,7 +238,7 @@ async def auth_callback(request: Request) -> RedirectResponse:
         "display_name": claims.get("name") or claims.get("preferred_username") or "Entra ID User",
         "auth_mode": "entra_id",
     }
-    request.session.pop("auth_flow", None)
+    request.session.pop("auth_flow_state", None)
     return RedirectResponse(url=request.session.pop("post_login_redirect", "/"), status_code=303)
 
 
