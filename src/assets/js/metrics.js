@@ -36,7 +36,7 @@
   async function loadCoverageMetric(range) {
     try {
       const res = await fetch(
-        `/api/metrics/purview-classification-coverage?range=${range}`,
+        `/api/metrics/purview-classification-coverage?time_range=${range}`,
         { credentials: "same-origin" }
       );
       if (!res.ok) {
@@ -80,7 +80,7 @@
   async function loadAlertsMetric(range) {
     try {
       const res = await fetch(
-        `/api/metrics/sensitive-data-exposure-alerts?range=${range}`,
+        `/api/metrics/sensitive-data-exposure-alerts?time_range=${range}`,
         { credentials: "same-origin" }
       );
       if (!res.ok) {

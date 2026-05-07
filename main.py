@@ -327,7 +327,7 @@ async def _count_purview_classified(
 # ---------------------------------------------------------------------------
 
 @app.get("/api/metrics/purview-classification-coverage")
-async def purview_classification_coverage(request: Request, range: str = "4w") -> JSONResponse:
+async def purview_classification_coverage(request: Request, time_range: str = "4w") -> JSONResponse:
     _require_user(request)
 
     account_name = os.getenv("PURVIEW_ACCOUNT_NAME", "").strip()
@@ -382,7 +382,7 @@ _DLP_WORKLOADS = {"sharepoint", "onedrive", "exchange"}
 
 
 @app.get("/api/metrics/sensitive-data-exposure-alerts")
-async def sensitive_data_exposure_alerts(request: Request, range: str = "4w") -> JSONResponse:
+async def sensitive_data_exposure_alerts(request: Request, time_range: str = "4w") -> JSONResponse:
     _require_user(request)
 
     tenant_id = AUTH_CONFIG.tenant_id
@@ -393,7 +393,7 @@ async def sensitive_data_exposure_alerts(request: Request, range: str = "4w") ->
     headers = {"Authorization": f"Bearer {token}"}
     feed_base = f"https://manage.office.com/api/v1.0/{tenant_id}/activity/feed"
 
-    week_count = 12 if range == "12w" else 4
+    week_count = 12 if time_range == "12w" else 4
     # O365 Management API retains content for max 7 days.
     available_days = 7
     now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
