@@ -238,24 +238,54 @@
     <section class="section-card">
       <div>
         <div class="section-title">3.2 Sensitive Data Use</div>
-        <p class="section-desc">Track classified-column coverage, sensitive data category mix, classification access demand, and mask execution activity.</p>
+        <p class="section-desc">Track potential sensitive-data consumer applications, sensitive data category mix, classification access demand, and mask execution activity.</p>
       </div>
       <div class="section-grid section-grid-two">
         <div class="metric-card">
           <div>
-            <div class="metric-title">Purview Classification Coverage</div>
-            <div class="metric-desc">Among structured databases and files parsed by Purview, the share of columns that have already been classified.</div>
+            <div class="metric-title">Potential Sensitive Data Consumer Applications</div>
+            <div class="metric-desc">Applications that directly access Purview-classified sensitive Azure DB / file resources, plus all transitive application consumers found through observed dependency paths.</div>
           </div>
-          <div class="donut-wrap donut-wrap-top">
-            <div>
-              <div class="metric-number">76%</div>
-              <div class="metric-caption">classified columns vs total columns</div>
+          <div class="number-hero">
+            <div class="metric-number">42</div>
+            <div class="metric-caption">potential sensitive data consumer applications</div>
+          </div>
+          <div class="split-stat-grid">
+            <div class="stat-block">
+              <div class="stat-label">DB-linked apps</div>
+              <div class="stat-value">27</div>
+              <div class="stat-sub">non-additive count</div>
             </div>
-            <div class="donut accent-yellow" style="--value:76">
-              <div class="donut-hole">76%</div>
+            <div class="stat-block">
+              <div class="stat-label">File-linked apps</div>
+              <div class="stat-value">18</div>
+              <div class="stat-sub">non-additive count</div>
             </div>
           </div>
-          <div class="metric-source">Data source: Purview Data Map, Purview scan results, Purview classification results.</div>
+          <details class="metric-details">
+            <summary>Expand application consumer list</summary>
+            <div class="table-responsive">
+              <table class="table table-sm metric-table mb-0">
+                <thead>
+                  <tr>
+                    <th>application Name</th>
+                    <th>Owner</th>
+                    <th>Type</th>
+                    <th>data resource name</th>
+                    <th>Classification</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>ClaimsRagApi</td><td>ClaimsPlatform</td><td>Direct</td><td>sql-claims-rag-prod</td><td>PII</td></tr>
+                  <tr><td>ClaimsPortal</td><td>ClaimsApps</td><td>Transitive</td><td>sql-claims-rag-prod</td><td>PII</td></tr>
+                  <tr><td>AgentGateway</td><td>AICoE</td><td>Transitive</td><td>sql-claims-rag-prod</td><td>PII</td></tr>
+                  <tr><td>CustomerVoiceApi</td><td>CustInsights</td><td>Direct</td><td>stcustvoicearchive01</td><td>Confidential</td></tr>
+                  <tr><td>ServiceDeskCopilot</td><td>ServiceDeskAI</td><td>Transitive</td><td>sql-supportbot-prep</td><td>HR</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+          <div class="metric-source">Data source: Purview classifications, Azure SQL Audit / Monitor logs, Azure Storage / Azure Files diagnostic logs, Application Insights / OpenTelemetry dependencies, Azure resource tags (<code>Owner</code>).</div>
         </div>
         <div class="metric-card">
           <div>
@@ -339,7 +369,7 @@
         </div>
         <div class="metric-card">
           <div>
-            <div class="metric-title">Mask Execution Activity</div>
+            <div class="metric-title">Data Mask Activity</div>
             <div class="metric-desc">Mask executions recorded during the selected period, with a resource-level breakdown available on demand.</div>
           </div>
           <div class="spark-number">

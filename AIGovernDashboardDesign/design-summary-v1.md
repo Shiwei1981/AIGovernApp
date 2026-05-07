@@ -194,10 +194,11 @@ UI 决定：
 - 两项都只统计 **Azure 数据库** 与 **Azure 云存储**
 - 卡片默认显示数量；资源对照 / 资源列表默认折叠，按需展开
 - `3.2` 当前原型已调整为 **4 个指标 / 每行 2 个**，并已**确认**
-  - **Purview Classification Coverage**
+  - **Potential Sensitive Data Consumer Applications**
   - **Sensitive Data Category Mix**
   - **Top Requested Classifications**
-  - **Mask Execution Activity**
+  - **Data Mask Activity**
+- `3.2.1` 不再把 Purview classification coverage 作为独立卡片，而是基于 Purview classification + DB / file 访问日志 + Application Insights / OpenTelemetry 调用图，递归追踪 Direct 与 Transitive sensitive data consumer applications；主卡片拆分展示 DB-linked apps 与 File-linked apps，两个数字是 non-additive；明细表仅保留 application Name、Owner、Type、data resource name、Classification
 - `3.3` 已改为 **M365 敏感数据保护与告警**，并收敛为只依赖**默认 Purview / M365 数据**的 2 个指标，且已**确认**
   - **Protected Sensitive M365 Items**
   - **M365 / Purview Exposure Alerts**

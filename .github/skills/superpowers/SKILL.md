@@ -41,3 +41,13 @@ Use this skill when you need a compact engineering workflow that turns a vague t
 - `/superpowers debug why this command fails`
 - `/superpowers implement the feature described in README`
 - `/superpowers review this change for regressions`
+
+## Companion Agents
+
+- `superpowers-brainstorm` - Scope rough ideas into a concrete implementation plan.
+- `superpowers-scaffold` - Bootstrap a minimal skeleton from a short requirement.
+- `superpowers-implement` - Deliver a focused feature slice with local validation.
+- `superpowers-debug` - Diagnose failures and fix the proven local cause.
+- `superpowers-refactor` - Refactor a local code path with minimal risk.
+- `superpowers-validate` - Add or tighten validation before shipping.
+- `superpowers-review` - Inspect a change for regressions and shipping risk.

@@ -409,7 +409,7 @@
 |---|---|---|
 | 1. AI 资产台账 | Discovered Assets；Asset Type Mix | 应在资产总览 / 资产结构相关指标中被覆盖，不要求重复显示与首页完全相同的两块卡片 |
 | 2. 第三方与供应链 | 3rd-Party Dependencies；Critical Open-Source Findings | 应在依赖面、开源与基础组件等指标中被覆盖，不要求重复显示与首页完全相同的两块卡片 |
-| 3. 数据与隐私 | Purview Classification Coverage；Sensitive Data Exposure Alerts | `Purview Classification Coverage` 应在 `3.2` 中被覆盖；`Sensitive Data Exposure Alerts` 当前由 `3.3 M365 / Purview Exposure Alerts` 承接，首页保留通用名称，但当前确认范围不再包含独立的 Azure AI App Exposure Alerts 卡片 |
+| 3. 数据与隐私 | Purview Classification Coverage；Sensitive Data Exposure Alerts | `Purview Classification Coverage` 在二级页中不再作为 `3.2.1` 独立卡片重复展示，而是作为 `3.2.1 Potential Sensitive Data Consumer Applications` 与 `3.2.2 Sensitive Data Category Mix` 的输入基础；`Sensitive Data Exposure Alerts` 当前由 `3.3 M365 / Purview Exposure Alerts` 承接，首页保留通用名称，但当前确认范围不再包含独立的 Azure AI App Exposure Alerts 卡片 |
 | 4. AI 安全防护 | AI Resources in Unhealthy State；Open High/Critical Defender Recommendations | 应在 Defender posture / recommendation 相关指标中被覆盖，可按更细粒度展开 |
 | 5. 输出可信与内容溯源 | Grounded Response Rate；Synthetic Content Labeling Gaps | 应在输出可信性、合成内容标识相关指标中被覆盖，可按场景或内容类型展开 |
 | 6. 验证、审计与合规保证 | Required Validation Coverage；Open High-Risk Findings | 应在 validation / audit / compliance 相关指标中被覆盖，不要求在页头重复同名卡片 |
@@ -464,16 +464,16 @@
 
 ## 3. 数据与隐私
 
-二级页面应覆盖一级页面指标：**Purview Classification Coverage**；**Sensitive Data Exposure Alerts**
+二级页面应覆盖一级页面指标：**Purview Classification Coverage**；**Sensitive Data Exposure Alerts**。其中 `Purview Classification Coverage` 的 Purview classification 数据在二级页中作为 `3.2.1` 与 `3.2.2` 的输入基础，不再作为单独 coverage 卡片重复展示。
 
 | 二级目录 | 指标 | 图形 | 是否本期实现 | 设计确认状态 | 指标解释 | 指标数据来源 |
 |---|---|---|---|---|---|---|
 | 3.1 Azure 数据资源纳管与 AI 标签 | Purview-Controlled vs AI-Tagged Azure Resources | paired count cards + collapsible comparison table | 是 | 已确认 | 仅统计 Azure 数据库与 Azure 云存储两类资源；分别对比已纳入 Purview 控管的资源数量与已打 `AI` tag 的资源数量，并提供默认折叠的资源对照表（资源名、resource group、是否有 `AI` tag、是否受 Purview 控管、Owner） | Microsoft Purview governed asset list / Data Map、Azure Resource Graph、Azure tags（`AI`、`Owner`） |
 | 3.1 Azure 数据资源纳管与 AI 标签 | Potential AI-Use Azure Resources Without AI Tag | paired count cards + collapsible resource list | 是 | 已确认 | 仅统计 Azure 数据库与 Azure 云存储两类资源；如果某个 resource group 中含 AI 相关 Azure 资源，或任一资源带 `AI` tag，则该 resource group 中未打 `AI` tag 的数据库/云存储应被统计，并提供默认折叠的资源列表（资源名、resource group、资源类型、Owner） | Azure Resource Graph、Azure resource group membership、Azure tags（`AI`、`Owner`） |
-| 3.2 敏感数据使用 | Purview Classification Coverage | donut | 是 | 已确认 | Purview 已发现且可做列级解析的数据库 / 文件资源中，已完成 classify 的列占总列数的比例 | Microsoft Purview Data Map、Purview scan results、Purview classification 结果 |
+| 3.2 敏感数据使用 | Potential Sensitive Data Consumer Applications | plain number + DB/File split stats + collapsible application list | 是 | 已确认 | 基于 Purview classification 找到敏感 Azure DB / Azure file 资源，再结合 DB / file 访问日志识别直接消费应用，并通过 Application Insights / OpenTelemetry 应用调用图递归追踪所有依赖这些应用的上游 / 传递应用；主卡片展示 total、DB-linked apps、File-linked apps，其中 DB/File 两个数字是 non-additive；默认折叠列表只保留 application Name、Owner、Type、data resource name、Classification | Microsoft Purview classification、Azure SQL Audit / Monitor logs、Azure Storage / Azure Files diagnostic logs、Application Insights / OpenTelemetry dependencies、Azure Resource Graph、Azure resource tags（`Owner`） |
 | 3.2 敏感数据使用 | Sensitive Data Category Mix | stacked composition bar | 是 | 已确认 | 已被 classify 的敏感数据列按 classification 类别聚合后的结构分布 | Purview classification 结果、Microsoft Purview Information Protection |
 | 3.2 敏感数据使用 | Top Requested Classifications | top 3 ranking cards + collapsible table | 是 | 已确认 | 在所选时间段内，被特定应用程序请求可见性的 classified 数据列中，访问量最高的 top 3 classification；并提供默认折叠的 classification 访问量明细表（classification、访问量） | 自定义 classified column visibility request 数据库 |
-| 3.2 敏感数据使用 | Mask Execution Activity | plain number + sparkline + collapsible table | 是 | 已确认 | 在所选时间段内记录到的 mask 执行次数；并提供默认折叠的资源级明细表（资源名、mask 次数、mask 方法） | 自定义 mask request 数据库 |
+| 3.2 敏感数据使用 | Data Mask Activity | plain number + sparkline + collapsible table | 是 | 已确认 | 在所选时间段内记录到的 mask 执行次数；并提供默认折叠的资源级明细表（资源名、mask 次数、mask 方法） | 自定义 mask request 数据库 |
 | 3.3 M365 敏感数据保护与告警 | Protected Sensitive M365 Items | plain number + collapsible table | 是 | 已确认 | 基于默认 Purview 数据，统计在 SharePoint Online、OneDrive、Exchange Online 等位置中，已检测到敏感信息类型且已带敏感度标签的项目数量；并提供默认折叠的位置级列表 | Microsoft Purview Content Explorer、Microsoft Purview Information Protection、SharePoint Online / OneDrive / Exchange Online metadata |
 | 3.3 M365 敏感数据保护与告警 | M365 / Purview Exposure Alerts | plain number + sparkline + collapsible table | 是 | 已确认 | 来自 M365 / Purview 控制面的敏感数据暴露告警案例数；并提供默认折叠的 location / policy 明细列表 | Microsoft Purview DLP / Alert Center、Purview Audit |
 | 3.4 数据保留与删除 | Over-Retention Data Resources | plain number + sparkline + collapsible table | 否 | 已确认 | 已超出批准保留周期、但仍处于保留状态的数据资源数量；并提供默认折叠的资源明细列表 | Microsoft Purview Data Lifecycle Management、Azure Storage lifecycle policies、Purview retention state |
@@ -533,24 +533,36 @@
   4. 分别按“Azure 数据库 / Azure 云存储”统计数量
   5. 明细表输出 4 列：资源名、resource group、资源类型、Owner
 
-#### 3.2.1 Purview Classification Coverage
+#### 3.2.1 Potential Sensitive Data Consumer Applications
 
-- **设计逻辑**：这是当前 Data and Privacy 域最直接的识别能力指标，回答“Purview 已经把多少可列级分析的数据资源真正 classify 了”。
+- **设计逻辑**：`Sensitive Data Use` 更应该回答“哪些应用正在直接或间接受敏感数据使用影响”，而不是只回答“数据是否已经被 classify”。本指标用 Purview classification 识别敏感数据资源，再用访问日志和应用调用图推断潜在敏感数据消费应用范围。
 - **来源系统**：
-  - Microsoft Purview Data Map
-  - Purview scan results
-  - Purview classification 结果
+  - Microsoft Purview classification / Data Map
+  - Azure SQL Audit / Monitor logs
+  - Azure Storage / Azure Files diagnostic logs
+  - Application Insights / OpenTelemetry dependencies
+  - Azure Resource Graph
+  - Azure resource tags（`Owner`）
 - **需要抽取的关键字段**：
-  - 资源标识、资源类型
-  - schema / column 清单
-  - 每列是否已有 classification
+  - Purview：data resource id / name、classification、resource type
+  - DB / file access logs：data resource id / name、caller identity、access time
+  - Application Insights / OpenTelemetry：caller application、callee application、dependency target、operation id、timestamp
+  - Azure Resource Graph / tags：application resource mapping、tag `Owner`
 - **计算逻辑**：
-  1. 只纳入 Purview 已发现且**可做列级解析**的数据库 / 文件资源
-  2. 统计这些资源中的总列数
-  3. 统计其中已完成 classification 的列数
-  4. 计算：
-     - `Purview Classification Coverage = 已完成 classification 的列数 / 总列数`
-  5. donut 显示覆盖率百分比
+  1. 从 Purview classification 结果中识别包含敏感 classification 的 Azure DB / Azure file 资源
+  2. 对 Azure DB 使用 Azure SQL Audit / Monitor logs，识别访问这些敏感数据资源的应用身份
+  3. 对 Azure file / storage 使用 Azure Storage / Azure Files diagnostic logs，识别访问这些敏感文件资源的应用身份
+  4. 将这些直接访问敏感数据资源的应用标记为 **Direct**
+  5. 基于 Application Insights / OpenTelemetry dependencies 构建应用调用图
+  6. 从 Direct 应用出发，沿调用图递归追踪所有依赖 Direct 应用的上游 / 传递应用，不限制 hop 数
+  7. 将这些通过调用链关联到 Direct 应用的应用标记为 **Transitive**
+  8. 对 `Direct ∪ Transitive` 应用按 application identity 去重，得到主 KPI 数值
+  9. 主卡片同时展示两个资源类型拆分数字：
+     - **DB-linked apps**：关联到敏感 Azure DB 的 potential sensitive data consumer applications 数量
+     - **File-linked apps**：关联到敏感 Azure file / storage 的 potential sensitive data consumer applications 数量
+  10. `DB-linked apps` 与 `File-linked apps` 是 **non-additive counts**；同一个应用如果同时关联 DB 与 file，可能同时计入两个拆分数字，因此两个数字不应相加得到 total
+  11. Owner 从应用 Azure resource 的 `Owner` tag 获取；如果应用资源没有 `Owner` tag，可回退到 resource group 的 `Owner` tag；仍无法获取则显示 `Unknown`
+  12. 默认折叠列表只输出 5 列：application Name、Owner、Type、data resource name、Classification
 
 #### 3.2.2 Sensitive Data Category Mix
 
@@ -586,7 +598,7 @@
   3. 排序后输出访问量最高的 top 3 classification
   4. 默认折叠表输出所有 classification 的访问量明细（classification、访问量）
 
-#### 3.2.4 Mask Execution Activity
+#### 3.2.4 Data Mask Activity
 
 - **设计逻辑**：帮助管理员看到过去一段时间中敏感数据保护动作是否真实发生，而不是只看是否存在静态 mask 配置。
 - **来源系统**：
